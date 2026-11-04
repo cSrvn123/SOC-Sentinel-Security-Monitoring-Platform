@@ -1,0 +1,12 @@
+<group name="windows,sysmon,sysmon_process-anomalies,">
+  <rule id="100100" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)(?:^|\\)(?:powershell|pwsh)\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:^|\s)-(?:encodedcommand|enc)(?:\s|$)</field>
+    <description>Suspicious PowerShell encoded command execution detected; encoded execution requires investigation.</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <group>powershell,process_creation,</group>
+  </rule>
+</group>

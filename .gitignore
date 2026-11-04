@@ -1,0 +1,94 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+private/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local outputs
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Additional Python environments and caches
+env/
+ENV/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+pip-wheel-metadata/
+*.egg-info/
+
+# IDE and operating-system temporary files
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
+Desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+System Volume Information/
+
+# Local database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Additional credential and keystore formats
+*.p8
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.jks
+*.keystore
+*.token
+credentials/
+credentials.json
+credentials.yml
+credentials.yaml
+credentials.ini
+
+# Raw telemetry and investigation evidence
+*.evtx
+*.etl
+*.pcap
+*.pcapng
+*.jsonl
+*.ndjson
+*.har
+*.dmp
+*.dump
+logs/
+evidence/
+investigations/evidence/
+investigations/private/
+investigations/logs/
+
+# Personal data and approved local-only exclusions
+personal-data/
+pii/
+/reports/codex-handoff.md
+/tools/sysmon/Sysmon*.exe
+/sysmon/configuration/sysmonconfig.xml.txt
