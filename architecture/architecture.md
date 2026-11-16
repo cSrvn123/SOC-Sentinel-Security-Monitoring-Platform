@@ -1,5 +1,7 @@
 # SOC Sentinel Architecture
 
+> **Design context only:** The diagram below is a conceptual deployment design. It is not a verified or currently implemented live Wazuh deployment. For the architecture of the implemented local workflows, see [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+
 ```mermaid
 flowchart TD
     A[Windows 11 Endpoint] --> B[Windows Security Event Logs]

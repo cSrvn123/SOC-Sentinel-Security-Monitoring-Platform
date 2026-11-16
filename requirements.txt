@@ -1,1 +1,1 @@
-# Python dependencies will be added when the IOC enrichment module is implemented.
+# The documented Python workflows use the standard library and require no third-party packages.

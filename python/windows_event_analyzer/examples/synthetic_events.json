@@ -1,0 +1,71 @@
+[
+  {
+    "source": "Microsoft-Windows-Security-Auditing",
+    "event_id": 4625,
+    "timestamp": "2026-01-01T10:00:00.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"TargetUserName": "synthetic.user", "IpAddress": "203.0.113.42"}
+  },
+  {
+    "source": "Microsoft-Windows-Security-Auditing",
+    "event_id": 4625,
+    "timestamp": "2026-01-01T10:00:05.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"TargetUserName": "synthetic.user", "IpAddress": "203.0.113.42"}
+  },
+  {
+    "source": "Microsoft-Windows-Security-Auditing",
+    "event_id": 4625,
+    "timestamp": "2026-01-01T10:00:10.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"TargetUserName": "synthetic.user", "IpAddress": "203.0.113.42"}
+  },
+  {
+    "source": "Microsoft-Windows-Security-Auditing",
+    "event_id": 4624,
+    "timestamp": "2026-01-01T10:01:00.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"TargetUserName": "synthetic.user", "IpAddress": "198.51.100.10"}
+  },
+  {
+    "source": "Microsoft-Windows-Sysmon/Operational",
+    "event_id": 1,
+    "timestamp": "2026-01-01T10:02:00.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {
+      "Image": "C:\\Users\\synthetic.user\\AppData\\Local\\Temp\\sample.exe",
+      "ProcessId": "4242",
+      "ParentImage": "C:\\Windows\\explorer.exe",
+      "CommandLine": "sample.exe --synthetic-test"
+    }
+  },
+  {
+    "source": "Microsoft-Windows-Sysmon/Operational",
+    "event_id": 3,
+    "timestamp": "2026-01-01T10:03:00.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {
+      "Image": "C:\\Windows\\System32\\example.exe",
+      "ProcessId": "4243",
+      "SourceIp": "192.0.2.25",
+      "DestinationIp": "8.8.8.8"
+    }
+  },
+  {
+    "source": "Microsoft-Windows-Sysmon/Operational",
+    "event_id": 22,
+    "timestamp": "2026-01-01T10:04:00.000Z",
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"Image": "C:\\Windows\\System32\\example.exe", "QueryName": "one.two.three.four.five.six.example"}
+  },
+  {
+    "source": "Sysmon",
+    "event_id": 1,
+    "computer": "SYNTHETIC-WIN11",
+    "event_data": {"ProcessName": "example.exe"}
+  },
+  {
+    "source": "Synthetic-Unsupported-Provider",
+    "event_id": 9999
+  }
+]

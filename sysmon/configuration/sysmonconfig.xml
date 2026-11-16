@@ -1,4 +1,7 @@
 ﻿<Sysmon schemaversion="4.90">
+  <!-- Minimal illustrative sample; unvalidated for deployment.
+       Empty exclude filters below keep all events of each listed type.
+       Review and tune the scope before applying. -->
   <HashAlgorithms>SHA256</HashAlgorithms>
   <EventFiltering>
     <ProcessCreate onmatch="exclude" />

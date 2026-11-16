@@ -2,8 +2,8 @@
   <rule id="100100" level="10">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)(?:^|\\)(?:powershell|pwsh)\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:^|\s)-(?:encodedcommand|enc)(?:\s|$)</field>
-    <description>Suspicious PowerShell encoded command execution detected; encoded execution requires investigation.</description>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)^\s*(?:"[^"]+"|\S+)\s+(?:(?:-(?:noprofile|noninteractive|nologo|sta|mta)\s+)|(?:-(?:executionpolicy|inputformat|outputformat|configurationname|version|windowstyle)\s+\S+\s+))*-(?:encodedcommand|enc)(?=\s|$)</field>
+    <description>Suspicious PowerShell encoded-command invocation attempt detected; investigation is required.</description>
     <mitre>
       <id>T1059.001</id>
     </mitre>

@@ -1,0 +1,508 @@
+{
+  "schema_version": "1.0",
+  "rule": {
+    "path": "wazuh/custom-rules/100100-suspicious-powershell.xml",
+    "rule_id": "100100",
+    "level": 10,
+    "required_group": "sysmon_event1",
+    "field_names": [
+      "win.eventdata.image",
+      "win.eventdata.commandLine"
+    ],
+    "description": "Suspicious PowerShell encoded-command invocation attempt detected; investigation is required.",
+    "mitre_ids": [
+      "T1059.001"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "P1",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Exact full switch follows the executable."
+    },
+    {
+      "case_id": "P2",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Exact abbreviation follows the executable."
+    },
+    {
+      "case_id": "P3",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -eNc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Matching is case-insensitive."
+    },
+    {
+      "case_id": "P4",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -NoProfile -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "A supported launcher option may precede the switch."
+    },
+    {
+      "case_id": "P5",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "PowerShell 7 executable and full switch match."
+    },
+    {
+      "case_id": "P6",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "D:\\LabTools\\PowerShell\\pwsh.exe",
+        "win.eventdata.commandLine": "D:\\LabTools\\PowerShell\\pwsh.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Matching uses the executable basename, not a fixed install directory."
+    },
+    {
+      "case_id": "N1",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -Command Get-Process"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "No encoded-command launcher switch."
+    },
+    {
+      "case_id": "N2",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -NoProfile -Command Get-Date"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "-NoProfile alone is not suspicious for this rule."
+    },
+    {
+      "case_id": "N3",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\cmd.exe",
+        "win.eventdata.commandLine": "cmd.exe /c echo powershell.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The process image is not PowerShell."
+    },
+    {
+      "case_id": "N4",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 3,
+        "groups": ["sysmon_event3"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The required group is sysmon_event1."
+    },
+    {
+      "case_id": "N5",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -EncodedCommandExtra SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The switch name does not end at the required argument boundary."
+    },
+    {
+      "case_id": "N6",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -Command \"Write-Output '-enc SYNTHETIC-TEST-DATA'\""
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "-Command starts the command argument; switch text inside it is not a launcher option."
+    },
+    {
+      "case_id": "FP1",
+      "category": "false_positive_context",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -EncodedCommand SYNTHETIC-TEST-DATA",
+        "win.eventdata.parentImage": "C:\\Lab\\EndpointAdmin\\agent.exe",
+        "win.eventdata.user": "SYNTHETIC\\svc-admin"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Match 100100; analyst validates change record, expected host, parent process, and service account. This is a review scenario, not a suppression test.",
+      "analyst_review_context": "Analyst validates change record, expected host, parent process, and service account."
+    },
+    {
+      "case_id": "FP2",
+      "category": "false_positive_context",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "pwsh.exe -enc SYNTHETIC-TEST-DATA",
+        "win.eventdata.parentImage": "C:\\Lab\\SoftwareDeploy\\runner.exe",
+        "win.eventdata.user": "SYNTHETIC\\deploy"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Match 100100; analyst checks deployment job and package/change records. Do not broadly allowlist the executable.",
+      "analyst_review_context": "Analyst checks deployment job and package/change records."
+    },
+    {
+      "case_id": "FP3",
+      "category": "false_positive_context",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -EncodedCommand SYNTHETIC-TEST-DATA",
+        "win.eventdata.parentImage": "C:\\Lab\\RedTeam\\runner.exe",
+        "win.eventdata.user": "SYNTHETIC\\tester"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Match 100100; analyst verifies exercise scope and time window with the exercise owner. Preserve the alert for auditability.",
+      "analyst_review_context": "Analyst verifies exercise scope and time window with the exercise owner."
+    },
+    {
+      "case_id": "L1",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -NoProfile -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "-NoProfile takes no value."
+    },
+    {
+      "case_id": "L2",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -NonInteractive -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "-NonInteractive takes no value."
+    },
+    {
+      "case_id": "L3",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -NoLogo -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "-NoLogo takes no value."
+    },
+    {
+      "case_id": "L4",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -Sta -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "-Sta takes no value."
+    },
+    {
+      "case_id": "L5",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -Mta -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "-Mta takes no value."
+    },
+    {
+      "case_id": "L6",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -ExecutionPolicy RemoteSigned -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "RemoteSigned is a synthetic option value."
+    },
+    {
+      "case_id": "L7",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -InputFormat Text -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Text is a synthetic option value."
+    },
+    {
+      "case_id": "L8",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -OutputFormat Text -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Text is a synthetic option value."
+    },
+    {
+      "case_id": "L9",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -ConfigurationName SyntheticConfig -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "SyntheticConfig is a synthetic option value."
+    },
+    {
+      "case_id": "L10",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -Version 5.1 -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "5.1 is a synthetic option value."
+    },
+    {
+      "case_id": "L11",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -WindowStyle Hidden -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Hidden is a synthetic option value."
+    },
+    {
+      "case_id": "V1",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Quoted path with spaces is one first token."
+    },
+    {
+      "case_id": "V2",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "D:\\Tools\\pwsh.exe",
+        "win.eventdata.commandLine": "D:\\Tools\\pwsh.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Unquoted path without spaces is one first token."
+    },
+    {
+      "case_id": "V3",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "c:\\WINDOWS\\SYSTEM32\\WINDOWSPOWERSHELL\\V1.0\\POWERSHELL.EXE",
+        "win.eventdata.commandLine": "POWERSHELL.EXE -eNc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Image and switch matching are case-insensitive."
+    },
+    {
+      "case_id": "V4",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe   -NoProfile  -enc   SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Repeated spaces remain valid separators."
+    },
+    {
+      "case_id": "V5",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe\t-NoLogo\t-enc\tSYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Each literal \\\\t in the source test plan denotes one tab character in the in-memory test string."
+    },
+    {
+      "case_id": "V6",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "pwsh.exe -ExecutionPolicy RemoteSigned -NoProfile -WindowStyle Hidden -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Repeated supported options can appear in different orders before the encoded switch."
+    },
+    {
+      "case_id": "M1",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "pwsh.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Sysmon Image identifies PowerShell; the first command-line token does not gate the rule."
+    },
+    {
+      "case_id": "M2",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "notepad.exe -EncodedCommand SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Sysmon Image identifies PowerShell; notepad.exe is only the synthetic first command-line token."
+    },
+    {
+      "case_id": "M3",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\cmd.exe",
+        "win.eventdata.commandLine": "powershell.exe -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The authoritative Image field fails the PowerShell identity condition."
+    },
+    {
+      "case_id": "N7",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -en SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "-en is not one of the exact switches selected by this rule."
+    },
+    {
+      "case_id": "N8",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -encX SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The switch has no valid argument boundary."
+    },
+    {
+      "case_id": "N9",
+      "category": "negative",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -UnknownOption -enc SYNTHETIC-TEST-DATA"
+      },
+      "expected": {"match_status": "no_match"},
+      "rationale": "The rule only allows the documented launcher options before the encoded switch."
+    },
+    {
+      "case_id": "I1",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "win.eventdata.commandLine": "powershell.exe -EncodedCommand"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Match as an invocation attempt; Event ID 1 does not prove that a valid command executed."
+    },
+    {
+      "case_id": "I2",
+      "category": "positive",
+      "synthetic_event": {
+        "win.system.eventID": 1,
+        "groups": ["sysmon_event1"],
+        "win.eventdata.image": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+        "win.eventdata.commandLine": "pwsh.exe -enc"
+      },
+      "expected": {"match_status": "match", "rule_id": "100100", "level": 10},
+      "rationale": "Match as an invocation attempt; Event ID 1 does not prove that a valid command executed."
+    }
+  ]
+}

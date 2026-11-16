@@ -4,18 +4,20 @@ Status: Draft, not deployed to the running Wazuh Manager.
 
 ## Detection objective
 
-Raise a high-priority alert when Windows PowerShell or PowerShell 7 starts with the `-EncodedCommand` or `-enc` switch. Encoded commands can conceal script intent and require analyst investigation; encoding alone does not prove malicious activity.
+Raise a high-priority alert when Windows PowerShell (`powershell.exe`) or PowerShell 7 (`pwsh.exe`) is launched with the `-EncodedCommand` or `-enc` command-line switch. Encoded commands can conceal script intent and require analyst investigation; encoding alone does not prove malicious activity.
 
 ## Required telemetry
 
 - Sysmon Event ID 1 (Process Create) from the Windows endpoint.
 - Wazuh agent collection of `Microsoft-Windows-Sysmon/Operational`.
-- Decoded fields `win.system.eventID`, `win.eventdata.image`, and `win.eventdata.commandLine`.
+- Decoded fields `win.system.eventID`, `win.eventdata.image`, `win.eventdata.commandLine`, and the `sysmon_event1` group assigned by the built-in Sysmon decoder.
 - The built-in Wazuh group `sysmon_event1`.
 
 ## Detection logic
 
-Rule ID `100100`, level `10`, matches the `sysmon_event1` group, an image ending in `powershell.exe` or `pwsh.exe` (case-insensitive), and a command line containing a switch bounded as `-EncodedCommand` or `-enc` (case-insensitive). Both process-image and command-line conditions must match. The rule uses Wazuh PCRE2 field matching supported by the installed Wazuh 4.14.1 ruleset.
+Rule ID `100100`, level `10`, requires the `sysmon_event1` group, an image ending in `powershell.exe` or `pwsh.exe`, and a command line whose first token is followed by supported launcher options and an exact `-EncodedCommand` or `-enc` option. The Sysmon `Image` field is authoritative for process identity; the command-line first token is not required to agree with it. Matching is case-insensitive. The command-line expression requires a token boundary after the switch, so names such as `-EncodedCommandExtra` do not match. It only looks for the switch in the launcher-option sequence before command/script arguments; text such as `-enc` inside a `-Command` argument does not satisfy the rule.
+
+Supported options before the encoded-command switch are `-NoProfile`, `-NonInteractive`, `-NoLogo`, `-Sta`, `-Mta`, `-ExecutionPolicy`, `-InputFormat`, `-OutputFormat`, `-ConfigurationName`, `-Version`, and `-WindowStyle`. Options that take a value are modeled with one following argument. Other launcher options or unusual command-line quoting may not match and should be checked against actual decoded Sysmon events before deployment. The command-line first token can be quoted or unquoted; its text is not used as the process-identity check.
 
 ## MITRE ATT&CK mapping
 
@@ -26,7 +28,7 @@ Rule ID `100100`, level `10`, matches the `sysmon_event1` group, an image ending
 
 - Rule ID: `100100`
 - Level: `10`
-- Description: `Suspicious PowerShell encoded command execution detected; encoded execution requires investigation.`
+- Description: `Suspicious PowerShell encoded-command invocation attempt detected; investigation is required.`
 - The alert should identify the Windows endpoint and Sysmon process-create event. Review decoded process and parent-process details in the authorized Wazuh interface; do not copy command-line arguments into shared reports.
 
 ## False positives
@@ -47,4 +49,4 @@ Rule ID `100100`, level `10`, matches the `sysmon_event1` group, an image ending
 
 ## Validation status and limitations
 
-The XML is intended for Wazuh 4.14.1 syntax and is checked against the installed base rule and PCRE2 field-rule examples. Initial synthetic checks validate the XML and match logic in memory. They do not load this file into the running Manager or substitute for `wazuh-logtest` against an isolated copy of the custom rules. No real encoded command or payload is executed.
+The XML is intended for Wazuh 4.14.1 syntax. A bare `-EncodedCommand` or `-enc` switch with no following value is treated as an invocation attempt; the process-create event does not prove that a valid command executed. XML parsing and synthetic in-memory regular-expression checks are documented in the companion test plan. They do not load this file into the Wazuh rule engine and do not substitute for `wazuh-logtest` in an isolated environment with the complete matching ruleset. No real encoded command or payload is executed. Deployment status remains **draft, not deployed**.
