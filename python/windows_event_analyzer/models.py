@@ -31,4 +31,5 @@ class AnalysisReport:
     events: list[NormalizedEvent]
     issues: list[str] = field(default_factory=list)
     original_records: list[object] = field(default_factory=list)
+    event_record_indices: list[int] = field(default_factory=list)
 

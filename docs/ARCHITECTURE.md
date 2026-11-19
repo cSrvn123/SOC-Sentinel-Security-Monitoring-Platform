@@ -1,15 +1,16 @@
 # SOC Sentinel Architecture
 
-This document describes the two implemented local workflows in SOC Sentinel. They are independent: the incident investigation workflow consumes supplied event records, while Detection 001 validation consumes a rule XML file and a synthetic case manifest. Neither workflow requires or invokes a live Wazuh Manager.
+This document describes the two implemented local workflows in SOC Sentinel. They are independent: the incident investigation workflow consumes supplied event records and can optionally collect a bounded snapshot from local Windows event channels, while Detection 001 validation consumes a rule XML file and a synthetic case manifest. Neither workflow requires or invokes a live Wazuh Manager.
 
-The diagrams describe available package behavior, not a production deployment. Synthetic records are examples and tests; the analyzer can also be called with records supplied by an authorized caller. It does not collect Windows events itself.
+The diagrams describe available package behavior, not a production deployment. Synthetic records are examples and tests; the analyzer API itself processes supplied records and does not collect Windows events. The optional Windows GUI collector is a separate, user-triggered component described below.
 
 ## 1. Overall architecture
 
 ```mermaid
 flowchart LR
     subgraph IncidentWorkflow["A. Incident investigation and reporting"]
-        Records["Synthetic or caller-supplied JSON event records"] --> Analyzer["windows_event_analyzer.analyze_records"]
+        LocalLogs["Optional on-demand local Security / Sysmon collection"] --> Analyzer["windows_event_analyzer.analyze_records"]
+        Records["Synthetic or caller-supplied JSON event records"] --> Analyzer
         Analyzer --> Analysis["AnalysisReport: normalized events, observations, originals, issues"]
 
         Analysis --> Selection["Caller selects indicator candidates"]
@@ -71,7 +72,7 @@ flowchart LR
 
 | Component | Input and output | Role, automation, and limitation |
 |---|---|---|
-| `windows_event_analyzer.analyze_records` | Accepts an iterable of event mappings; returns an `AnalysisReport` with supported normalized events, original input records, and input issues. | Normalizes Windows Security 4624/4625 and Sysmon 1/3/22 records and adds heuristic investigation observations. It reads supplied records; it does not subscribe to Windows event channels. Observations are not maliciousness verdicts. |
+| Local event collector and `windows_event_analyzer.analyze_records` | The optional Windows GUI queries fixed local channels and passes Event Viewer-shaped records to `analyze_records`; the public analyzer also accepts an iterable of caller-supplied event mappings. | The collector makes an explicit bounded query of Security 4624/4625 and Sysmon Operational 1/3/22 records using the built-in Windows `wevtutil` utility. It is read-only, user-triggered, limited to a selected recent time window and event cap, and does not stream continuously. Channel permissions depend on the current Windows account; no elevation is requested. It preserves rendered event XML alongside parsed fields. The analyzer normalizes supported records and adds heuristic prompts, not maliciousness verdicts. |
 | IOC classification, validation, and enrichment | `enrich_indicator(value, provider=...)` returns an `EnrichmentResult`. The workflow can pass candidates from normalized fields or raw evidence. | `OfflineReputationProvider` returns synthetic examples and makes no network request. Candidate selection is caller-controlled; not every raw field, such as process hashes in the Stage 7 fixture, is normalized by the analyzer. Optional live VirusTotal lookup is separate and requires explicit indicator-sharing acknowledgment; it is not part of this diagram’s offline path. |
 | `alert_correlation.correlate` | Accepts an `AnalysisReport` or normalized events and optional existing IOC results; returns a list-compatible `CorrelationReport`. | Creates supported logon, process, network, and DNS investigation cases, along with diagnostics and skipped-event information. It does not perform enrichment. Correlation confidence describes evidence linkage, not incident severity or a confirmed attack. |
 | Incident builder and timeline | The builder converts cases to an `IncidentReportCollection`; `build_timelined_collection` returns a collection with per-incident timelines. | Original source batches and collection-level context stay at collection level; each timeline uses only its incident’s related events. Timestamps are not invented. |
@@ -83,7 +84,7 @@ flowchart LR
 
 The package APIs are composable functions, not one automatic service. The Stage 7 demonstration calls the analyzer, explicitly selects IOC candidates, supplies `OfflineReputationProvider` results, correlates cases, and then performs a **test-only analyst composition** of the separate cases for the case study. That composition is not behavior of `correlate()`. It then assigns the training assessment and mapping explicitly. The diagrams show the supported component sequence and caller-controlled handoffs; they do not imply that the engine makes analyst decisions.
 
-The investigation fixture is synthetic. The documented workflow does not execute command lines, decode payloads, scan networks, or contact VirusTotal. No live Wazuh alert or endpoint investigation is represented.
+The Stage 7 investigation fixture is synthetic. The optional collector can read real local event records only after a user clicks its collection button; collected data remains local and may be sensitive. The workflow does not execute command lines, decode payloads, scan networks, or contact VirusTotal. No live Wazuh alert or Wazuh Manager integration is represented.
 
 ## 3. Detection 001 validation workflow
 
@@ -125,7 +126,7 @@ The Wazuh status annotation is **`NOT_RUN`**. Detection 001 remains a draft and 
 
 ## Verified component inventory
 
-- `windows_event_analyzer`: `analyze_records`, `analyze_json`, normalized-event and analysis-report models, text/JSON formatters, and a JSON-input CLI.
+- `windows_event_analyzer`: `analyze_records`, `analyze_json`, optional Windows local event collection and GUI, normalized-event and analysis-report models, text/JSON formatters, and a JSON-input CLI.
 - `ioc_enrichment`: indicator classification and validation, `enrich_indicator`, synthetic `OfflineReputationProvider`, optional explicit VirusTotal provider, and text/JSON formatters.
 - `alert_correlation`: `correlate`, `CorrelationConfig`, investigation-case models, list-compatible `CorrelationReport`, and case formatters.
 - `incident_reporting`: correlation adapter, incident and collection models, `build_timeline` / `build_timelined_collection`, `add_attack_mapping`, and JSON/Markdown formatters.

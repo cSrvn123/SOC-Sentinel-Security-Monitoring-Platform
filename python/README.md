@@ -84,7 +84,7 @@ Each result contains the indicator, detected type, validation status, reputation
 
 ## Windows Security Event Analyzer
 
-The separate `windows_event_analyzer` package reads local JSON records and produces a common event structure plus cautious analyst observations. It supports Windows Security events 4624 and 4625, and Sysmon events 1, 3, and 22. It performs no network access and does not change Windows settings or read Windows event logs directly.
+The `windows_event_analyzer` package analyzes supplied JSON records and produces a common event structure plus cautious analyst observations. It supports Windows Security events 4624 and 4625, and Sysmon events 1, 3, and 22. The JSON analyzer itself does not access Windows event logs or change Windows settings. On Windows, a separate optional GUI can make an explicit, bounded, read-only query of the local Security and Sysmon Operational channels and pass the returned records to that analyzer.
 
 ### Input and execution
 
@@ -105,6 +105,12 @@ python -m windows_event_analyzer.cli --input windows_event_analyzer/examples/syn
 
 The analyzer can read JSON from standard input when the calling shell passes UTF-8 input reliably; using `--input` is the recommended Windows PowerShell workflow.
 
+### Optional local Windows Event Log review screen
+
+To collect a recent snapshot without typing a command, double-click `SOC-Sentinel-Local-Events.pyw` from File Explorer (requires a Windows Python file association). Click **Collect and analyze** to query Security events 4624/4625 and Sysmon Operational events 1/3/22 for the selected look-back period, up to 100 events per channel. Collection is user-triggered, read-only, and limited to the local computer; it is not continuous monitoring and does not contact Wazuh or any external service. Windows account permissions determine which channels can be read; the app does not request elevation. Unsupported or incomplete records are shown as analyzer issues, and results are not saved unless you choose **Export JSON**. The export contains original event data and may be sensitive, so review it and save only to an approved location.
+
+Selecting a Sysmon Event ID 3 row opens grouped **Connection**, **Process**, **Address Classification**, and **Raw Evidence** details. Connection fields come from the selected source event; protocol, initiated state, endpoints, hostnames, ports, and port names may be absent. The view preserves the source timestamp and, when it includes a timezone, displays its UTC equivalent and local-time conversion. Process image, ID, GUID, and user are shown from that event; `ParentImage` and `CommandLine` are shown only when present in the selected record. The raw source record remains available in the scrollable details view and in memory. It is not written to disk unless **Export JSON** is selected. Address labels such as multicast, private, link-local, or globally routable describe address type only; they are not maliciousness or benignness verdicts. The view does not join a connection to another event by PID or infer a DNS-to-network relationship.
+
 ### Observations and interpretation
 
 - Repeated failed logons use a default threshold of 3 Event ID 4625 records within 300 seconds. Correlation keys include the computer and whichever of account or source IP is available; events with neither are not grouped.
@@ -123,7 +129,7 @@ Run all Python tests, including IOC Enrichment and this analyzer, from the `pyth
 python -m unittest discover -s tests -v
 ```
 
-Tests use synthetic records only and do not query external services or access Windows event logs.
+Tests use synthetic records only and do not query external services or access Windows event logs. They do not exercise the live collector against the current computer.
 
 ## Alert Correlation Engine
 

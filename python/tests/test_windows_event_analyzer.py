@@ -189,6 +189,61 @@ class WindowsEventAnalyzerTests(unittest.TestCase):
         self.assertTrue(any("globally routable" in item for item in external.events[0].observations))
         self.assertFalse(any("globally routable" in item for item in reserved.events[0].observations))
 
+    def test_destination_ip_classification_covers_special_and_global_categories(self) -> None:
+        cases = (
+            ("127.0.0.1", "loopback"),
+            ("::1", "loopback"),
+            ("10.20.30.40", "private"),
+            ("fc00::1", "private"),
+            ("169.254.10.20", "link-local"),
+            ("fe80::1", "link-local"),
+            ("224.0.0.252", "IPv4 multicast"),
+            ("239.1.2.3", "IPv4 multicast"),
+            ("ff02::fb", "IPv6 multicast"),
+            ("0.0.0.0", "unspecified"),
+            ("::", "unspecified"),
+            ("100.64.0.1", "reserved/special-purpose"),
+            ("192.0.2.10", "reserved/special-purpose"),
+            ("198.18.0.1", "reserved/special-purpose"),
+            ("203.0.113.8", "reserved/special-purpose"),
+            ("240.0.0.1", "reserved/special-purpose"),
+            ("2001:db8::1", "reserved/special-purpose"),
+            ("3fff::1", "reserved/special-purpose"),
+            ("8.8.8.8", "globally routable unicast"),
+            ("2001:4860:4860::8888", "globally routable unicast"),
+            ("192.0.0.9", "globally routable unicast"),
+            ("2001:1::1", "globally routable unicast"),
+            ("2001:3::1", "globally routable unicast"),
+        )
+        for address, expected_type in cases:
+            with self.subTest(address=address):
+                report = analyze_records(sysmon_event(3, {"DestinationIp": address}))
+                observations = report.events[0].observations
+                self.assertTrue(any(expected_type in item for item in observations), observations)
+                if "multicast" in expected_type:
+                    self.assertTrue(
+                        any("does not determine whether the activity is benign or malicious" in item for item in observations)
+                    )
+                if expected_type != "globally routable unicast":
+                    self.assertFalse(any("globally routable unicast" in item for item in observations))
+
+    def test_multicast_classification_does_not_change_event_fields_or_assess_intent(self) -> None:
+        record = sysmon_event(
+            3,
+            {
+                "DestinationIp": "224.0.0.252",
+                "Image": r"C:\Windows\System32\svchost.exe",
+                "ProcessId": "2200",
+            },
+        )
+        event = analyze_records(record).events[0]
+        self.assertEqual(event.destination_ip, "224.0.0.252")
+        self.assertEqual(event.process_path, r"C:\Windows\System32\svchost.exe")
+        self.assertEqual(event.process_id, "2200")
+        self.assertTrue(any("IPv4 multicast" in item for item in event.observations))
+        self.assertFalse(any("benign" in item and "does not determine" not in item for item in event.observations))
+        self.assertFalse(any("malicious" in item and "does not determine" not in item for item in event.observations))
+
     def test_dns_heuristics_flag_selected_shapes_only(self) -> None:
         unusual = analyze_records(sysmon_event(22, {"QueryName": "one.two.three.four.five.six.example"}))
         ordinary = analyze_records(sysmon_event(22, {"QueryName": "updates.example"}))

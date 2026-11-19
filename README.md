@@ -2,7 +2,7 @@
 
 **I'm Saravana C, and I developed SOC Sentinel as a local Python portfolio project for analyzing supplied Windows/Sysmon event records, exercising a draft detection against synthetic cases, and preparing evidence-linked incident reports.**
 
-The repository contains two independent workflows: incident investigation over supplied JSON records and local validation of Detection 001. It does not collect endpoint telemetry, provide live monitoring, or claim live Wazuh validation.
+The repository contains two independent workflows: incident investigation and local validation of Detection 001. Investigation can use supplied JSON records or an optional user-triggered snapshot of local Windows Security and Sysmon events. It does not provide continuous monitoring or claim live Wazuh validation.
 
 ## Contents
 
@@ -29,7 +29,7 @@ I built the incident workflow to keep source data and analyst judgment distinct 
 ## Capabilities
 
 - **IOC enrichment:** validates IPv4/IPv6 addresses, domains, HTTP(S) URLs, and MD5/SHA-1/SHA-256 hashes. Offline synthetic results are the default. Optional VirusTotal metadata lookup requires explicit indicator-sharing acknowledgment.
-- **Windows event analysis:** accepts JSON records for Security Event IDs 4624 and 4625 and Sysmon Event IDs 1, 3, and 22. It normalizes supported fields, preserves source records, and reports heuristic investigation prompts.
+- **Windows event analysis:** accepts supplied JSON records for Security Event IDs 4624 and 4625 and Sysmon Event IDs 1, 3, and 22. On Windows, an optional on-demand GUI can also read a bounded recent snapshot from the local Security and Sysmon event channels, then pass those records to the same analyzer. It preserves source records and reports heuristic investigation prompts.
 - **Alert correlation:** correlates supported logon, process, network, and DNS patterns using normalized events, timestamps, identities, and explicitly supplied IOC results. It does not perform enrichment itself.
 - **Incident reporting:** adapts correlation cases into incident reports, builds timelines, supports independent analyst-controlled severity and conclusion fields, supports explicit evidence-backed ATT&CK mappings, and exports JSON or Markdown.
 - **Detection validation:** checks the supported structure of Detection 001 XML and evaluates the 40-case synthetic manifest with a narrow Python `re` approximation after structural validation passes.
@@ -42,7 +42,8 @@ The repository contains two local workflows. Event analysis and incident reporti
 ```mermaid
 flowchart LR
     subgraph Investigation["Local event investigation workflow"]
-        Events["Synthetic or authorized JSON records"] --> Analyzer["Windows Event Analyzer"]
+        LocalLogs["Optional user-triggered local Security / Sysmon query"] --> Analyzer
+        Events["Synthetic or caller-supplied JSON records"] --> Analyzer["Windows Event Analyzer"]
         Analyzer --> Normalized["Normalized events and heuristic observations"]
         Normalized --> Correlator["Alert Correlation Engine"]
         OfflineIOC["Optional offline IOC results"] --> Correlator
@@ -97,7 +98,7 @@ IOC values are supplied to the correlation engine; it does not contact an enrich
 | [`detections/`](detections/001-suspicious-powershell-encoded-command.md) | Detection 001 rationale and other detection notes |
 | [`investigations/`](investigations/007-suspicious-powershell-case-study.md) | Synthetic Stage 7 investigation and Stage 8 validation report |
 | [`python/ioc_enrichment/`](python/ioc_enrichment/) | Indicator classification, validation, providers, orchestration, formatting, and CLI |
-| [`python/windows_event_analyzer/`](python/windows_event_analyzer/) | Supported-event normalization, heuristic observations, formatting, and CLI |
+| [`python/windows_event_analyzer/`](python/windows_event_analyzer/) | Local read-only event collection GUI, supported-event normalization, heuristic observations, formatting, and JSON-input CLI |
 | [`python/alert_correlation/`](python/alert_correlation/) | Correlation models, engine, and case formatting |
 | [`python/incident_reporting/`](python/incident_reporting/) | Incident models, builder, timeline, ATT&CK helper, and report formatters |
 | [`python/detection_validation/`](python/detection_validation/) | Detection manifest models, structural XML validator, Python approximation runner, and report formatters |
@@ -161,6 +162,8 @@ python -m windows_event_analyzer.cli --input windows_event_analyzer/examples/syn
 ```
 
 The CLI also accepts `--failed-logon-threshold` and `--failed-logon-window-seconds`. It analyzes supplied JSON; it does not read Windows Event Logs directly or change endpoint configuration.
+
+On Windows, the optional local event review screen reads a bounded snapshot from the local Security and Sysmon Operational channels when you click **Collect and analyze**. It queries only Security IDs 4624/4625 and Sysmon IDs 1/3/22, for a selected look-back period and event cap. The screen is read-only, does not run continuously, does not change event logs, and makes no network requests. It uses Windows' built-in `wevtutil` query utility internally; you do not need to type a collection command. Double-click `python/SOC-Sentinel-Local-Events.pyw` from File Explorer to open the screen (requires a Windows Python file association). Access depends on your Windows account's permissions; the application does not elevate itself. The detail view stays in memory. JSON export is optional and warns that original event data may contain sensitive information.
 
 ### Correlation and incident reporting APIs
 

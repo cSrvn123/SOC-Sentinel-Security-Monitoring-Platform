@@ -30,6 +30,50 @@ _SUSPICIOUS_CHILDREN = {
     "cmd.exe", "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe", "mshta.exe"
 }
 _OFFICE_PARENTS = {"winword.exe", "excel.exe", "powerpnt.exe", "outlook.exe", "onenote.exe"}
+_PRIVATE_IP_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+)
+# Stable guards for commonly encountered non-global special-purpose space.
+# ipaddress.is_global/is_private have received classification corrections in
+# patch and minor releases, so these ranges must never become global merely
+# because a runtime's embedded registry table is older.
+_SPECIAL_PURPOSE_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in (
+        "0.0.0.0/8",
+        "100.64.0.0/10",
+        "192.0.0.0/24",
+        "192.0.2.0/24",
+        "192.88.99.0/24",
+        "198.18.0.0/15",
+        "198.51.100.0/24",
+        "203.0.113.0/24",
+        "240.0.0.0/4",
+        "64:ff9b:1::/48",
+        "100::/64",
+        "100:0:0:1::/64",
+        "2001::/23",
+        "2001:2::/48",
+        "2001:db8::/32",
+        "2002::/16",
+        "3fff::/20",
+    )
+)
+_GLOBALLY_REACHABLE_SPECIAL_EXCEPTIONS = tuple(
+    ipaddress.ip_network(value)
+    for value in (
+        "192.0.0.9/32",
+        "192.0.0.10/32",
+        "2001:1::1/128",
+        "2001:1::2/128",
+        "2001:1::3/128",
+        "2001:3::/32",
+        "2001:4:112::/48",
+        "2001:20::/28",
+        "2001:30::/28",
+    )
+)
 
 
 def _key(value: object) -> str:
@@ -270,15 +314,66 @@ def _process_observations(event: NormalizedEvent) -> None:
         event.observations.append("Office application launched a command or script interpreter; validate business context and parent-child activity.")
 
 
+def _address_in_networks(address: ipaddress.IPv4Address | ipaddress.IPv6Address, networks: tuple[Any, ...]) -> bool:
+    return any(address.version == network.version and address in network for network in networks)
+
+
+def _destination_address_type(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
+    """Classify address scope/type without treating it as a threat verdict.
+
+    Explicit type checks precede ``is_global`` because multicast and special
+    ranges are not ordinary globally routable unicast. Explicit private and
+    special-purpose networks also reduce dependence on ipaddress table changes
+    across Python versions; unknown non-global ranges fail closed as special.
+    """
+    if address.is_loopback:
+        return "loopback"
+    if address.is_unspecified:
+        return "unspecified"
+    if address.is_multicast:
+        return "IPv4 multicast" if address.version == 4 else "IPv6 multicast"
+    if address.is_link_local:
+        return "link-local"
+    if _address_in_networks(address, _PRIVATE_IP_NETWORKS):
+        return "private"
+    if _address_in_networks(address, _GLOBALLY_REACHABLE_SPECIAL_EXCEPTIONS):
+        return "globally routable unicast"
+    if _address_in_networks(address, _SPECIAL_PURPOSE_NETWORKS):
+        return "reserved/special-purpose"
+    if address.is_reserved or not address.is_global:
+        return "reserved/special-purpose"
+    return "globally routable unicast"
+
+
+def classify_ip_address(value: str | None) -> str | None:
+    """Return the analyzer's address-type label, or ``None`` for invalid input.
+
+    This describes address scope/type only. It does not assess reputation or
+    decide whether observed network activity is benign or malicious.
+    """
+    if not value:
+        return None
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return None
+    return _destination_address_type(address)
+
+
 def _network_observations(event: NormalizedEvent) -> None:
     if event.event_id != 3 or not event.destination_ip:
         return
-    try:
-        address = ipaddress.ip_address(event.destination_ip)
-    except ValueError:
+    address_type = classify_ip_address(event.destination_ip)
+    if address_type is None:
         return
-    if address.is_global:
-        event.observations.append("Network event destination is a globally routable IP; review destination, process, and expected network behavior.")
+    if address_type == "globally routable unicast":
+        event.observations.append(
+            "Network event destination is a globally routable unicast IP; review destination, process, and expected network behavior."
+        )
+    else:
+        event.observations.append(
+            f"Network event destination is {address_type}; address type alone does not determine whether the activity is benign or malicious."
+        )
 
 
 def _dns_observations(event: NormalizedEvent) -> None:
@@ -315,10 +410,12 @@ def analyze_records(
         raise EventInputError("Input must be a JSON object or an array of event objects.")
     events: list[NormalizedEvent] = []
     issues: list[str] = []
+    event_record_indices: list[int] = []
     for index, raw_record in enumerate(items, start=1):
         event, issue = _parse_record(raw_record, index)
         if event:
             events.append(event)
+            event_record_indices.append(index - 1)
         if issue:
             issues.append(issue)
     _failed_logon_observations(events, failed_logon_threshold, failed_logon_window)
@@ -326,7 +423,7 @@ def analyze_records(
         _process_observations(event)
         _network_observations(event)
         _dns_observations(event)
-    return AnalysisReport(len(items), events, issues, copy.deepcopy(items))
+    return AnalysisReport(len(items), events, issues, copy.deepcopy(items), event_record_indices)
 
 
 def analyze_json(
